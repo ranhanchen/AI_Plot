@@ -69,7 +69,7 @@ function emitUpdate() {
       class="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer select-none"
       @click="emit('toggle')"
     >
-      <span class="font-semibold">{{ config.name }}</span>
+      <span class="font-semibold text-sm">{{ config.name }}</span>
       <div class="flex items-center gap-2">
         <button
           class="text-red-400 hover:text-red-600 transition-colors"
@@ -88,34 +88,34 @@ function emitUpdate() {
     <!-- 展开详情 -->
     <div v-if="expanded" class="px-4 pb-4 space-y-3 border-t border-[var(--color-border)] pt-3 bg-[var(--color-bg)]/50">
       <div>
-        <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置名称</label>
+        <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
         <input
           :value="config.name"
           type="text"
-          class="w-full bg-[var(--color-bg)] rounded-lg px-3 py-2.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none transition-shadow"
+          class="w-full bg-[var(--color-bg)] rounded-lg px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none transition-shadow text-sm"
           placeholder="配置名称"
           @input="(e) => { config.name = (e.target as HTMLInputElement).value; emitUpdate() }"
         />
       </div>
 
       <div>
-        <label class="block text-sm text-[var(--color-text-secondary)] mb-1">Base URL</label>
+        <label class="block text-xs text-[var(--color-text-secondary)] mb-1">Base URL</label>
         <input
           :value="config.baseUrl"
           type="text"
-          class="w-full bg-[var(--color-bg)] rounded-lg px-3 py-2.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none transition-shadow"
+          class="w-full bg-[var(--color-bg)] rounded-lg px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none transition-shadow text-sm"
           placeholder="https://api.openai.com"
           @input="(e) => { config.baseUrl = (e.target as HTMLInputElement).value; emitUpdate() }"
         />
       </div>
 
       <div>
-        <label class="block text-sm text-[var(--color-text-secondary)] mb-1">API Key</label>
+        <label class="block text-xs text-[var(--color-text-secondary)] mb-1">API Key</label>
         <div class="flex gap-2">
           <input
             :value="config.apiKey"
             :type="showKey ? 'text' : 'password'"
-            class="flex-1 bg-[var(--color-bg)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none"
+            class="flex-1 bg-[var(--color-bg)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm"
             placeholder="sk-..."
             @input="(e) => { config.apiKey = (e.target as HTMLInputElement).value; emitUpdate() }"
           />
@@ -130,13 +130,13 @@ function emitUpdate() {
       </div>
 
       <div>
-        <label class="block text-sm text-[var(--color-text-secondary)] mb-1">模型</label>
+        <label class="block text-xs text-[var(--color-text-secondary)] mb-1">模型</label>
         <div class="flex gap-2">
           <div class="flex-1 relative">
             <input
               :value="config.model"
               type="text"
-              class="w-full bg-[var(--color-bg)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none"
+              class="w-full bg-[var(--color-bg)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm"
               placeholder="输入或选择模型"
               @input="onModelInput"
               @focus="onModelFocus"
@@ -149,7 +149,7 @@ function emitUpdate() {
               <div
                 v-for="m in filteredModels"
                 :key="m"
-                class="px-3 py-1.5 text-sm cursor-pointer hover:bg-[var(--color-surface-hover)]"
+                class="px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--color-surface-hover)]"
                 @mousedown.prevent="selectModel(m)"
               >
                 {{ m }}
@@ -157,7 +157,7 @@ function emitUpdate() {
             </div>
           </div>
           <button
-            class="px-3 py-2 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors shrink-0 disabled:opacity-50"
+            class="px-3 py-1.5 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors shrink-0 disabled:opacity-50 text-xs"
             :disabled="fetching"
             @click="emit('fetchModels', config)"
           >
@@ -167,7 +167,7 @@ function emitUpdate() {
       </div>
 
       <div>
-        <label class="block text-sm text-[var(--color-text-secondary)] mb-1">
+        <label class="block text-xs text-[var(--color-text-secondary)] mb-1">
           温度: {{ config.temperature.toFixed(1) }}
         </label>
         <input
@@ -182,7 +182,7 @@ function emitUpdate() {
       </div>
 
       <button
-        class="w-full py-2 rounded border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white transition-colors disabled:opacity-50"
+        class="w-full py-1.5 rounded border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white transition-colors disabled:opacity-50 text-xs"
         :disabled="testing"
         @click="emit('test', config)"
       >

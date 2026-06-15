@@ -156,17 +156,17 @@ onMounted(() => {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between sticky top-0 z-10 bg-[var(--color-bg)] pt-4 pb-2">
-      <h2 class="text-lg font-semibold section-title">系统配置项</h2>
+      <h2 class="text-base font-semibold section-title">系统配置项</h2>
       <button
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors"
+        class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-base"
         @click="showAddForm = true; expandedId = null"
       >
-        <Plus :size="16" />
-        添加自定义配置
+        <Plus :size="14" />
+        添加
       </button>
     </div>
 
-    <div v-if="items.length === 0 && !showAddForm" class="text-center py-12 text-[var(--color-text-muted)] empty-state rounded-lg">
+    <div v-if="items.length === 0 && !showAddForm" class="text-center py-12 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
       暂无系统配置项
     </div>
 
@@ -182,7 +182,7 @@ onMounted(() => {
         class="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer select-none"
         @click="toggleExpand(item.id!)"
       >
-        <span class="font-semibold">{{ item.key }}</span>
+        <span class="font-semibold text-sm">{{ item.key }}</span>
         <div class="flex items-center gap-2">
           <button
             v-if="!isDefaultKey(item.key)"
@@ -200,21 +200,21 @@ onMounted(() => {
       </div>
       <div v-if="expandedId === item.id" class="px-4 pb-4 space-y-3 border-t border-[var(--color-border)] pt-3 bg-[var(--color-surface-hover)]/30">
         <div>
-          <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置名称</label>
+          <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
           <input
             :value="item.key"
             type="text"
             :readonly="isDefaultKey(item.key)"
-            :class="['w-full rounded-lg px-3 py-2.5 border transition-shadow', isDefaultKey(item.key) ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] cursor-not-allowed border-[var(--color-border)]' : 'bg-[var(--color-bg)] border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none']"
+            :class="['w-full rounded-lg px-3 py-1.5 border transition-shadow text-sm', isDefaultKey(item.key) ? 'bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] cursor-not-allowed border-[var(--color-border)]' : 'bg-[var(--color-bg)] border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none']"
             placeholder="配置名称"
             @input="(e) => { item.key = (e.target as HTMLInputElement).value; updateItem(item) }"
           />
         </div>
         <div>
-          <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置内容</label>
+          <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置内容</label>
           <textarea
             :value="item.value"
-            class="w-full bg-[var(--color-bg)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none " rows="2" v-auto-resize
+            class="w-full bg-[var(--color-bg)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" rows="2" v-auto-resize
             placeholder="配置内容"
             @input="(e) => { item.value = (e.target as HTMLTextAreaElement).value; updateItem(item) }"
           />
@@ -224,7 +224,7 @@ onMounted(() => {
 
     <div v-if="showAddForm" class="border border-[var(--color-accent)] rounded-lg overflow-hidden">
       <div class="w-full flex items-center justify-between px-4 py-3 bg-[var(--color-bg)]">
-        <span class="font-semibold text-[var(--color-accent)]">新建配置</span>
+        <span class="font-semibold text-sm text-[var(--color-accent)]">新建配置</span>
         <button
           class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
           @click="showAddForm = false; newKey = ''; newValue = ''"
@@ -234,31 +234,31 @@ onMounted(() => {
       </div>
       <div class="px-4 pb-4 space-y-3 border-t border-[var(--color-border)] pt-3">
         <div>
-          <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置名称</label>
+          <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
           <input
             v-model="newKey"
             type="text"
-            class="w-full bg-[var(--color-surface)] rounded-lg px-3 py-2.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none transition-shadow"
+            class="w-full bg-[var(--color-surface)] rounded-lg px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/10 focus:outline-none transition-shadow text-sm"
             placeholder="配置名称"
           />
         </div>
         <div>
-          <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置内容</label>
+          <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置内容</label>
           <textarea
             v-model="newValue"
-            class="w-full bg-[var(--color-surface)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none " rows="2" v-auto-resize
+            class="w-full bg-[var(--color-surface)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" rows="2" v-auto-resize
             placeholder="配置内容"
           />
         </div>
         <div class="flex justify-end gap-2">
           <button
-            class="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
+            class="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-xs"
             @click="showAddForm = false; newKey = ''; newValue = ''"
           >
             取消
           </button>
           <button
-            class="px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50"
+            class="px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50 text-xs"
             :disabled="!newKey.trim()"
             @click="addItem()"
           >

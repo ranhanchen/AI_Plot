@@ -150,7 +150,7 @@ async function handleSave() {
     <div class="flex gap-1 px-4 py-2 border-b border-[var(--color-border)] shrink-0">
       <button
         :class="[
-          'flex-1 py-2 rounded-md font-medium transition-all',
+          'flex-1 py-2 rounded-md font-medium transition-all text-base',
           activeTab === 'api'
             ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] shadow-sm'
             : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
@@ -161,7 +161,7 @@ async function handleSave() {
       </button>
       <button
         :class="[
-          'flex-1 py-2 rounded-md font-medium transition-all',
+          'flex-1 py-2 rounded-md font-medium transition-all text-base',
           activeTab === 'system'
             ? 'bg-[var(--color-accent)]/10 text-[var(--color-accent)] shadow-sm'
             : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'

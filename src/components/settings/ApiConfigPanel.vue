@@ -160,17 +160,17 @@ onMounted(() => {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between sticky top-0 z-10 bg-[var(--color-bg)] pt-4 pb-2">
-      <h2 class="text-lg font-semibold section-title">API 配置</h2>
+      <h2 class="text-base font-semibold section-title">API 配置</h2>
       <button
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors"
+        class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-base"
         @click="addConfig"
       >
-        <Plus :size="16" />
+        <Plus :size="14" />
         新增
       </button>
     </div>
 
-    <div v-if="configs.length === 0" class="text-center py-12 text-[var(--color-text-muted)] empty-state rounded-lg">
+    <div v-if="configs.length === 0" class="text-center py-12 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
       暂无 API 配置
     </div>
 

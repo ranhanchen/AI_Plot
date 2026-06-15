@@ -49,7 +49,7 @@ onMounted(() => {
       @click="toggleDropdown"
       @blur="onBlur"
     >
-      <span class="truncate hidden sm:inline">{{ currentName }}</span>
+      <span class="truncate">{{ currentName }}</span>
       <ChevronDown :size="12" class="shrink-0" />
     </button>
     <Transition name="dropdown">

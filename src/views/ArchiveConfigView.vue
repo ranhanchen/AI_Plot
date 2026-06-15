@@ -178,13 +178,14 @@ onUnmounted(() => {
       </button>
       <h1 class="text-lg font-semibold flex-1">存档配置</h1>
       <button class="flex items-center gap-1.5 px-3 py-2 rounded-md bg-[var(--color-accent)] text-white text-sm hover:opacity-90 transition-colors" @click="handleSave">
-        <Save :size="16" />保存
+        <Save :size="16" />
+        <span class="hidden sm:inline">保存</span>
       </button>
     </header>
 
     <div class="flex border-b border-[var(--color-border)] shrink-0">
       <button v-for="tab in [{k:'world',l:'世界观'},{k:'configs',l:'存档配置项'}]" :key="tab.k"
-        :class="['flex-1 py-2.5 font-medium transition-colors', activeTab === tab.k ? 'text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]']"
+        :class="['flex-1 py-2.5 font-medium transition-colors text-base', activeTab === tab.k ? 'text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]']"
         @click="activeTab = tab.k as any">{{ tab.l }}</button>
     </div>
 
@@ -194,14 +195,14 @@ onUnmounted(() => {
       <template v-if="activeTab === 'configs'">
         <div>
           <div class="flex items-center justify-between mb-2 sticky top-0 z-10 bg-[var(--color-bg)] pt-4 pb-2">
-            <label class="font-medium">私有自定义配置项</label>
-            <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
-              @click="showAddPrivateForm = true; expandedPrivateIdx = null"><Plus :size="14" />添加自定义配置</button>
+            <label class="font-medium text-base">私有自定义配置项</label>
+            <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-base"
+              @click="showAddPrivateForm = true; expandedPrivateIdx = null"><Plus :size="14" />添加</button>
           </div>
           <div v-for="(cfg, i) in privateConfigs" :key="i" class="border border-[var(--color-border)] rounded-lg overflow-hidden mb-2">
             <div class="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer select-none"
               @click="expandedPrivateIdx = expandedPrivateIdx === i ? null : i">
-              <span class="font-semibold">{{ cfg.key || '未命名配置' }}</span>
+              <span class="font-semibold text-sm">{{ cfg.key || '未命名配置' }}</span>
               <div class="flex items-center gap-2">
                 <button class="text-red-400 hover:text-red-600 transition-colors" @click.stop="deletePrivateIdx = i"><Trash2 :size="16" /></button>
                 <ChevronDown :size="16" class="text-[var(--color-text-muted)] transition-transform duration-200" :class="{ 'rotate-180': expandedPrivateIdx === i }" />
@@ -209,35 +210,35 @@ onUnmounted(() => {
             </div>
             <div v-if="expandedPrivateIdx === i" class="px-4 pb-4 space-y-3 border-t border-[var(--color-border)] pt-3">
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置名称</label>
-                <input v-model="cfg.key" type="text" class="w-full bg-[var(--color-bg)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" placeholder="配置名称" @input="dirty = true" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
+                <input v-model="cfg.key" type="text" class="w-full bg-[var(--color-bg)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" placeholder="配置名称" @input="dirty = true" />
               </div>
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置内容</label>
-                <textarea v-model="cfg.value" class="w-full bg-[var(--color-bg)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" rows="2" v-auto-resize placeholder="配置内容" @input="dirty = true" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置内容</label>
+                <textarea v-model="cfg.value" class="w-full bg-[var(--color-bg)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" rows="2" v-auto-resize placeholder="配置内容" @input="dirty = true" />
               </div>
             </div>
           </div>
-          <div v-if="privateConfigs.length === 0 && !showAddPrivateForm" class="text-center py-12 text-[var(--color-text-muted)] empty-state rounded-lg">
+          <div v-if="privateConfigs.length === 0 && !showAddPrivateForm" class="text-center py-12 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
             暂无自定义配置
           </div>
           <div v-if="showAddPrivateForm" class="border border-[var(--color-accent)] rounded-lg overflow-hidden mb-2">
             <div class="w-full flex items-center justify-between px-4 py-3 bg-[var(--color-bg)]">
-              <span class="font-semibold text-[var(--color-accent)]">新建配置</span>
+              <span class="font-semibold text-sm text-[var(--color-accent)]">新建配置</span>
               <button class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors" @click="showAddPrivateForm = false; newPrivateKey = ''; newPrivateValue = ''"><X :size="16" /></button>
             </div>
             <div class="px-4 pb-4 space-y-3 border-t border-[var(--color-border)] pt-3">
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置名称</label>
-                <input v-model="newPrivateKey" type="text" class="w-full bg-[var(--color-surface)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" placeholder="配置名称" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
+                <input v-model="newPrivateKey" type="text" class="w-full bg-[var(--color-surface)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" placeholder="配置名称" />
               </div>
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置内容</label>
-                <textarea v-model="newPrivateValue" class="w-full bg-[var(--color-surface)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" rows="2" v-auto-resize placeholder="配置内容" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置内容</label>
+                <textarea v-model="newPrivateValue" class="w-full bg-[var(--color-surface)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" rows="2" v-auto-resize placeholder="配置内容" />
               </div>
               <div class="flex justify-end gap-2">
-                <button class="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors" @click="showAddPrivateForm = false; newPrivateKey = ''; newPrivateValue = ''">取消</button>
-                <button class="px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50" :disabled="!newPrivateKey.trim()" @click="addPrivateConfig()">添加</button>
+                <button class="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-xs" @click="showAddPrivateForm = false; newPrivateKey = ''; newPrivateValue = ''">取消</button>
+                <button class="px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50 text-xs" :disabled="!newPrivateKey.trim()" @click="addPrivateConfig()">添加</button>
               </div>
             </div>
           </div>
@@ -246,19 +247,19 @@ onUnmounted(() => {
         <!-- 引用系统配置项 -->
         <div ref="systemDropdownRef">
           <div class="flex items-center justify-between mb-2 sticky top-0 z-10 bg-[var(--color-bg)] pt-4 pb-2">
-            <label class="font-medium shrink-0">引用系统配置项</label>
+            <label class="font-medium shrink-0 text-base">引用系统配置项</label>
             <div class="flex items-center gap-1">
               <div class="relative">
-                <input v-model="systemSearchInput" type="text" class="w-36 px-2 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg)] text-xs focus:border-[var(--color-accent)] focus:outline-none" placeholder="搜索配置项" @keyup.enter="searchSystemConfigs()" />
+                <input v-model="systemSearchInput" type="text" class="w-36 px-2 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg)] text-sm focus:border-[var(--color-accent)] focus:outline-none" placeholder="搜索配置项" @keyup.enter="searchSystemConfigs()" />
                 <div v-if="showSystemDropdown" class="absolute top-full left-0 right-0 mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md shadow-lg z-20 max-h-40 overflow-y-auto">
-                  <div v-for="item in systemSearchResults" :key="item.id" class="px-3 py-1.5 text-xs cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" @click="selectSystemResult(item)">{{ item.key }}</div>
+                  <div v-for="item in systemSearchResults" :key="item.id" class="px-3 py-1.5 text-sm cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" @click="selectSystemResult(item)">{{ item.key }}</div>
                 </div>
               </div>
-              <button class="flex items-center justify-center px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors" @click="searchSystemConfigs()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>&#8203;</button>
-              <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors" @click="addSystemConfig()"><Plus :size="14" />调用系统配置项</button>
+              <button class="flex items-center justify-center px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-base" @click="searchSystemConfigs()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>&#8203;</button>
+              <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-base" @click="addSystemConfig()"><Plus :size="14" />引用</button>
             </div>
           </div>
-<div v-if="referencedSystemConfigKeys.length === 0" class="text-center py-12 text-[var(--color-text-muted)] empty-state rounded-lg">
+<div v-if="referencedSystemConfigKeys.length === 0" class="text-center py-12 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
             暂无引用系统配置项
           </div>
           <div v-else class="flex flex-wrap gap-2">
@@ -273,20 +274,22 @@ onUnmounted(() => {
       <!-- 世界观 -->
       <template v-if="activeTab === 'world'">
         <div>
-          <label class="block font-medium mb-1">初始世界观</label>
-          <textarea v-model="worldSetting" class="w-full px-3 py-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] focus:border-[var(--color-accent)] focus:outline-none" rows="2" v-auto-resize placeholder="描述这个世界的背景设定、历史、地理、势力等..." @input="dirty = true" />
+          <div class="pt-4 pb-2 mb-2">
+            <label class="font-medium text-base">初始世界观</label>
+          </div>
+          <textarea v-model="worldSetting" class="w-full px-3 py-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] focus:border-[var(--color-accent)] focus:outline-none text-sm" rows="2" v-auto-resize placeholder="描述这个世界的背景设定、历史、地理、势力等..." @input="dirty = true" />
         </div>
 
         <div>
           <div class="flex items-center justify-between mb-2">
-            <label class="font-medium">其他世界观</label>
-            <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
-              @click="showAddWorldForm = true; expandedWorldIdx = null"><Plus :size="14" />添加世界观</button>
+            <label class="font-medium text-base">其他世界观</label>
+            <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-base"
+              @click="showAddWorldForm = true; expandedWorldIdx = null"><Plus :size="14" />添加</button>
           </div>
           <div v-for="(cfg, i) in worldConfigs" :key="i" class="border border-[var(--color-border)] rounded-lg overflow-hidden mb-2">
             <div class="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer select-none"
               @click="expandedWorldIdx = expandedWorldIdx === i ? null : i">
-              <span class="font-semibold">{{ cfg.key || '未命名配置' }}</span>
+              <span class="font-semibold text-sm">{{ cfg.key || '未命名配置' }}</span>
               <div class="flex items-center gap-2">
                 <button class="text-red-400 hover:text-red-600 transition-colors" @click.stop="deleteWorldIdx = i"><Trash2 :size="16" /></button>
                 <ChevronDown :size="16" class="text-[var(--color-text-muted)] transition-transform duration-200" :class="{ 'rotate-180': expandedWorldIdx === i }" />
@@ -294,35 +297,35 @@ onUnmounted(() => {
             </div>
             <div v-if="expandedWorldIdx === i" class="px-4 pb-4 space-y-3 border-t border-[var(--color-border)] pt-3">
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置名称</label>
-                <input v-model="cfg.key" type="text" class="w-full bg-[var(--color-bg)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" placeholder="配置名称" @input="dirty = true" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
+                <input v-model="cfg.key" type="text" class="w-full bg-[var(--color-bg)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" placeholder="配置名称" @input="dirty = true" />
               </div>
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置内容</label>
-                <textarea v-model="cfg.value" class="w-full bg-[var(--color-bg)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" rows="2" v-auto-resize placeholder="配置内容" @input="dirty = true" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置内容</label>
+                <textarea v-model="cfg.value" class="w-full bg-[var(--color-bg)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" rows="2" v-auto-resize placeholder="配置内容" @input="dirty = true" />
               </div>
             </div>
           </div>
-          <div v-if="worldConfigs.length === 0 && !showAddWorldForm" class="text-center py-12 text-[var(--color-text-muted)] empty-state rounded-lg">
+          <div v-if="worldConfigs.length === 0 && !showAddWorldForm" class="text-center py-12 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
             暂无其他世界观
           </div>
           <div v-if="showAddWorldForm" class="border border-[var(--color-accent)] rounded-lg overflow-hidden mb-2">
             <div class="w-full flex items-center justify-between px-4 py-3 bg-[var(--color-bg)]">
-              <span class="font-semibold text-[var(--color-accent)]">新建配置</span>
+              <span class="font-semibold text-sm text-[var(--color-accent)]">新建配置</span>
               <button class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors" @click="showAddWorldForm = false; newWorldKey = ''; newWorldValue = ''"><X :size="16" /></button>
             </div>
             <div class="px-4 pb-4 space-y-3 border-t border-[var(--color-border)] pt-3">
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置名称</label>
-                <input v-model="newWorldKey" type="text" class="w-full bg-[var(--color-surface)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" placeholder="配置名称" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
+                <input v-model="newWorldKey" type="text" class="w-full bg-[var(--color-surface)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" placeholder="配置名称" />
               </div>
               <div>
-                <label class="block text-sm text-[var(--color-text-secondary)] mb-1">配置内容</label>
-                <textarea v-model="newWorldValue" class="w-full bg-[var(--color-surface)] rounded px-3 py-2 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none" rows="2" v-auto-resize placeholder="配置内容" />
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置内容</label>
+                <textarea v-model="newWorldValue" class="w-full bg-[var(--color-surface)] rounded px-3 py-1.5 border border-[var(--color-border)] focus:border-[var(--color-accent)] focus:outline-none text-sm" rows="2" v-auto-resize placeholder="配置内容" />
               </div>
               <div class="flex justify-end gap-2">
-                <button class="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors" @click="showAddWorldForm = false; newWorldKey = ''; newWorldValue = ''">取消</button>
-                <button class="px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50" :disabled="!newWorldKey.trim()" @click="addWorldConfig()">添加</button>
+                <button class="px-3 py-1.5 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-xs" @click="showAddWorldForm = false; newWorldKey = ''; newWorldValue = ''">取消</button>
+                <button class="px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50 text-xs" :disabled="!newWorldKey.trim()" @click="addWorldConfig()">添加</button>
               </div>
             </div>
           </div>

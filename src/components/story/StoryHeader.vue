@@ -27,14 +27,14 @@ const router = useRouter()
 
     <!-- 中间标题与统计：绝对居中 -->
     <div class="absolute left-1/2 -translate-x-1/2 text-center max-w-[60%]">
-      <div class="text-xl font-semibold truncate">{{ archive.title }}</div>
+      <div class="text-lg sm:text-xl font-semibold truncate">{{ archive.title }}</div>
       <div class="text-sm text-[var(--color-text-muted)]">
-        Token 未命中 {{ archive.tokenStats.missCost.toLocaleString() }}
-        | 命中 {{ archive.tokenStats.hitCost.toLocaleString() }}
-        | 输出 {{ archive.tokenStats.outputCost.toLocaleString() }}
+        <span class="hidden sm:inline">Token 未命中 {{ archive.tokenStats.missCost.toLocaleString() }} | 命中 {{ archive.tokenStats.hitCost.toLocaleString() }} | 输出 {{ archive.tokenStats.outputCost.toLocaleString() }}</span>
+        <span class="sm:hidden">Token {{ archive.tokenStats.missCost.toLocaleString() }}/{{ archive.tokenStats.hitCost.toLocaleString() }}/{{ archive.tokenStats.outputCost.toLocaleString() }}</span>
       </div>
       <div class="text-sm text-[var(--color-text-muted)]">
-        消息 {{ messageCount }} | 已压缩 {{ compressedCount }}
+        <span class="hidden sm:inline">消息 {{ messageCount }} | 已压缩 {{ compressedCount }}</span>
+        <span class="sm:hidden">消息 {{ messageCount }} | 压缩 {{ compressedCount }}</span>
       </div>
     </div>
 
