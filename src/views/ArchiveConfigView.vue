@@ -135,7 +135,7 @@ function selectSystemResult(item: SystemConfigItem) {
 
 async function addSystemConfig() {
   const key = systemSearchInput.value.trim()
-  if (!key) return
+  if (!key) { appStore.showToast('请输入或搜索配置项名称', 'error'); return }
   if (referencedSystemConfigKeys.value.includes(key)) {
     appStore.showToast('该配置项已引用', 'error')
     return
