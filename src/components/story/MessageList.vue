@@ -11,6 +11,7 @@ import { storeToRefs } from 'pinia'
 const props = defineProps<{
   archiveId: number
   resendTargetId: number | null
+  footerVisible: boolean
 }>()
 
 const emit = defineEmits<{
@@ -53,6 +54,7 @@ const showScrollbar = ref(false)
 const hoveringScrollbar = ref(false)
 const dragging = ref(false)
 const headerHidden = ref(false)
+const atBottomLocal = ref(true)
 let scrollTimer: ReturnType<typeof setTimeout> | null = null
 let scrollbarHoverTimer: ReturnType<typeof setTimeout> | null = null
 let dragStartY = 0
@@ -70,6 +72,11 @@ const thumbTopPct = computed(() => {
   if (maxScrollTop.value <= 0) return 0
   return (scrollTop.value / maxScrollTop.value) * (100 - thumbHeightPct.value)
 })
+
+const trackStyle = computed(() => ({
+  top: headerHidden.value ? '0px' : '88px',
+  bottom: props.footerVisible ? '80px' : '0px',
+}))
 
 function onScrollbarEnter() {
   hoveringScrollbar.value = true
@@ -109,6 +116,7 @@ function onNativeScroll() {
   const delta = st - lastScrollTop
 
   const isAtBottom = (el.scrollHeight - st - el.clientHeight) < 12
+  atBottomLocal.value = isAtBottom
   emit('atBottom', isAtBottom)
 
   if (delta > 8) {
@@ -349,7 +357,8 @@ defineExpose({
     <!-- 自定义滚动条 -->
     <div
       ref="trackRef"
-      class="absolute right-[3px] top-[88px] bottom-[80px] w-[4px] z-10 transition-opacity duration-500"
+      class="absolute right-[3px] w-[4px] z-10 transition-all duration-500"
+      :style="trackStyle"
       :class="showScrollbar || dragging || hoveringScrollbar ? 'opacity-100' : 'opacity-0'"
       @mouseenter="onScrollbarEnter"
       @mouseleave="onScrollbarLeave"

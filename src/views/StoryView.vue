@@ -238,6 +238,7 @@ onMounted(() => {
       ref="messageListRef"
       :archive-id="archiveId"
       :resend-target-id="resendTargetId"
+      :footer-visible="footerVisible"
       @context-menu="onContextMenu"
       @header-hidden="headerHidden = $event"
       @at-bottom="handleAtBottom"
