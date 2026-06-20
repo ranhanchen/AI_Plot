@@ -86,6 +86,9 @@ async function loadItems() {
   }
 
   fromDb.sort((a, b) => {
+    const aDef = isDefaultKey(a.key) ? 1 : 0
+    const bDef = isDefaultKey(b.key) ? 1 : 0
+    if (aDef !== bDef) return bDef - aDef
     if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder
     return b.createdAt - a.createdAt
   })
@@ -189,6 +192,10 @@ function toggleExpand(id: number) {
 
 function onDragStart(e: DragEvent, idx: number) {
   const item = items.value[idx]
+  if (isDefaultKey(item.key)) {
+    e.preventDefault()
+    return
+  }
   if (expandedId.value === item.id!) {
     expandedId.value = null
   }
@@ -207,7 +214,7 @@ function onDragOver(e: DragEvent, idx: number) {
 
 async function onDrop(e: DragEvent, targetIdx: number) {
   e.preventDefault()
-  if (dragIndex.value === null || dragIndex.value === targetIdx) {
+  if (targetIdx < 2 || dragIndex.value === null || dragIndex.value === targetIdx) {
     dragIndex.value = null
     dragOverIndex.value = null
     return
@@ -274,9 +281,9 @@ onMounted(() => {
       ]"
     >
       <div
-        draggable="true"
+        :draggable="!isDefaultKey(item.key)"
         class="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer select-none"
-        :class="{ 'cursor-grab': !dragIndex, 'cursor-grabbing': dragIndex === idx }"
+        :class="{ 'cursor-grab': !isDefaultKey(item.key) && !dragIndex, 'cursor-grabbing': dragIndex === idx }"
         @click="toggleExpand(item.id!)"
         @dragstart="onDragStart($event, idx)"
         @dragover="onDragOver($event, idx)"
