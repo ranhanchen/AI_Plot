@@ -254,7 +254,7 @@ onMounted(() => {
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between sticky top-0 z-10 bg-[var(--color-bg)] pt-4 pb-2">
+    <div class="flex items-center justify-between sticky top-0 z-10 bg-[var(--color-bg)] pt-8 pb-2">
       <h2 class="text-sm sm:text-base font-semibold section-title">API 配置</h2>
       <button
         class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-sm sm:text-base"

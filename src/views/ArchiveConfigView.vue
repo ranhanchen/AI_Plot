@@ -639,7 +639,7 @@ onUnmounted(() => {
         @click="activeTab = tab.k as any">{{ tab.l }}</button>
     </div>
 
-    <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+    <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-4 bg-[var(--color-bg)]">
 
       <!-- 角色管理 -->
       <template v-if="activeTab === 'roles'">

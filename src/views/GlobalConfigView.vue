@@ -210,7 +210,7 @@ async function confirmImport() {
       </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+    <div class="flex-1 overflow-y-auto px-4 pb-4 bg-[var(--color-bg)]">
       <RoleManager
         v-show="activeTab === 'roles'"
         ref="roleManagerRef"
