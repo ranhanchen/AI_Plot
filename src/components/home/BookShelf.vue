@@ -27,7 +27,7 @@ const emit = defineEmits<{
     />
     <div v-if="archives.length === 0" class="col-span-full flex items-center justify-center text-[var(--color-text-muted)] empty-state rounded-lg m-4">
       <div class="text-center py-12">
-        <p class="text-lg mb-2">书架空空如也</p>
+        <p class="text-base mb-2">书架空空如也</p>
         <p>点击「新建存档」开始你的冒险</p>
       </div>
     </div>

@@ -26,6 +26,11 @@ const routes = [
     name: 'archiveConfig',
     component: () => import('@/views/ArchiveConfigView.vue'),
   },
+  {
+    path: '/character/:id',
+    name: 'characterEdit',
+    component: () => import('@/views/CharacterRoleEdit.vue'),
+  },
 ]
 
 const router = createRouter({

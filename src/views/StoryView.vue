@@ -1,10 +1,12 @@
 <script setup lang="ts">
+defineOptions({ name: 'StoryView' })
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '@/db'
 import { useSessionStore } from '@/stores/session'
 import { useLLM } from '@/composables/useLLM'
 import { useClipboard } from '@/composables/useClipboard'
+import { preloadImages } from '@/composables/useImagePreload'
 import type { Archive } from '@/types'
 import { ArrowLeft } from 'lucide-vue-next'
 import StoryHeader from '@/components/story/StoryHeader.vue'
@@ -31,8 +33,14 @@ const footerVisible = ref(true)
 const atBottom = ref(true)
 
 function handleAtBottom(val: boolean) {
+  console.log('[StoryView.handleAtBottom]', val, 'footerVisible before:', footerVisible.value, 'atBottom before:', atBottom.value)
   atBottom.value = val
   footerVisible.value = val
+}
+
+function handleHeaderHidden(val: boolean) {
+  console.log('[StoryView.handleHeaderHidden]', val, 'headerHidden before:', headerHidden.value)
+  headerHidden.value = val
 }
 
 // 右键菜单
@@ -64,6 +72,13 @@ async function loadArchive() {
   sessionStore.currentArchiveId = a.id!
   sessionStore.selectedApiId = a.selectedApiId || null
   await updateCounts()
+  preloadArchiveRoleImages()
+}
+
+async function preloadArchiveRoleImages() {
+  const all = await db.characterRoles.toArray()
+  const roles = all.filter(r => r.archiveId === archiveId.value)
+  preloadImages(roles.flatMap(r => r.images || []))
 }
 
 async function updateCounts() {
@@ -240,7 +255,7 @@ onMounted(() => {
       :resend-target-id="resendTargetId"
       :footer-visible="footerVisible"
       @context-menu="onContextMenu"
-      @header-hidden="headerHidden = $event"
+      @header-hidden="handleHeaderHidden"
       @at-bottom="handleAtBottom"
     />
 

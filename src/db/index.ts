@@ -1,11 +1,12 @@
 import Dexie, { type Table } from 'dexie'
-import type { Archive, Message, ApiConfig, SystemConfigItem } from './schemas'
+import type { Archive, Message, ApiConfig, SystemConfigItem, CharacterRole } from './schemas'
 
 export class NarrativeForgeDB extends Dexie {
   archives!: Table<Archive, number>
   messages!: Table<Message, number>
   apiConfigs!: Table<ApiConfig, number>
   systemConfigs!: Table<SystemConfigItem, number>
+  characterRoles!: Table<CharacterRole, number>
 
   constructor() {
     super('NarrativeForgeDB')
@@ -40,6 +41,20 @@ export class NarrativeForgeDB extends Dexie {
         await tx.table('apiConfigs').update(item.id, {
           sortOrder: item.sortOrder !== undefined ? item.sortOrder : item.id,
         })
+      }
+    })
+    this.version(4).stores({
+      archives: '++id, createdAt',
+      messages: '++id, archiveId, [archiveId+timestamp], [archiveId+summaryStatus]',
+      apiConfigs: '++id, name',
+      systemConfigs: '++id, key',
+      characterRoles: '++id, archiveId, sortOrder',
+    }).upgrade(async tx => {
+      const archives = await tx.table('archives').toArray()
+      for (const a of archives) {
+        if (a.referencedSystemRoleIds === undefined) {
+          await tx.table('archives').update(a.id, { referencedSystemRoleIds: [] })
+        }
       }
     })
   }

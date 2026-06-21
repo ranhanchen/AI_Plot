@@ -170,7 +170,7 @@ onMounted(() => {
       >
         <ArrowLeft :size="20" />
       </button>
-      <h1 class="text-lg font-semibold flex-1">存档记忆</h1>
+      <h1 class="text-base font-semibold flex-1">存档记忆</h1>
       <button
         class="flex items-center gap-1.5 px-3 py-2 rounded-md bg-[var(--color-accent)] text-white text-sm hover:opacity-90 transition-colors"
         @click="handleSave"
@@ -256,7 +256,7 @@ onMounted(() => {
 
       <!-- AI 总结按钮 -->
       <button
-        class="w-60 py-2 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors text-sm disabled:opacity-50 block mx-auto"
+        style="width: 95%" class="py-2 rounded-lg bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50 text-sm block mx-auto"
         :disabled="summarizing"
         @click="handleSummarize"
       >

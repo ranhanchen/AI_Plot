@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue'
 import type { Message } from '@/types'
 import { db } from '@/db'
 import UserMessage from './UserMessage.vue'
@@ -60,6 +60,7 @@ let scrollbarHoverTimer: ReturnType<typeof setTimeout> | null = null
 let dragStartY = 0
 let dragStartScrollTop = 0
 let lastScrollTop = 0
+let isRestoring = false
 
 const maxScrollTop = computed(() => Math.max(scrollHeight.value - clientHeight.value, 0))
 
@@ -106,6 +107,7 @@ function onNativeScroll() {
   const el = listRef.value
   if (!el) return
   scrollTop.value = el.scrollTop
+  saveScrollPos()
   showScrollbar.value = true
   if (scrollTimer) clearTimeout(scrollTimer)
   scrollTimer = setTimeout(() => {
@@ -117,17 +119,28 @@ function onNativeScroll() {
 
   const isAtBottom = (el.scrollHeight - st - el.clientHeight) < 12
   atBottomLocal.value = isAtBottom
-  emit('atBottom', isAtBottom)
 
-  if (delta > 8) {
-    if (!headerHidden.value) {
-      headerHidden.value = true
-      emit('headerHidden', true)
-    }
-  } else if (delta < -4) {
-    if (headerHidden.value) {
-      headerHidden.value = false
-      emit('headerHidden', false)
+  console.log('[onNativeScroll] st:', st, 'delta:', delta, 'lastScrollTop:', lastScrollTop, 'isAtBottom:', isAtBottom, 'isRestoring:', isRestoring, 'headerHidden:', headerHidden.value)
+
+  if (!isRestoring) {
+    emit('atBottom', isAtBottom)
+  } else {
+    console.log('[onNativeScroll] isRestoring=TRUE, skipping emit atBottom')
+  }
+
+  if (!isRestoring) {
+    if (delta > 8) {
+      if (!headerHidden.value) {
+        headerHidden.value = true
+        emit('headerHidden', true)
+        console.log('[onNativeScroll] emit headerHidden=true')
+      }
+    } else if (delta < -4) {
+      if (headerHidden.value) {
+        headerHidden.value = false
+        emit('headerHidden', false)
+        console.log('[onNativeScroll] emit headerHidden=false')
+      }
     }
   }
   lastScrollTop = st
@@ -152,6 +165,7 @@ function onMouseMove(e: MouseEvent) {
   const visibleTrack = trackH - thumbH
   if (visibleTrack <= 0) return
   el.scrollTop = dragStartScrollTop + (deltaY / visibleTrack) * maxScrollTop.value
+  saveScrollPos()
 }
 
 function onMouseUp() {
@@ -177,9 +191,62 @@ function onTrackMouseDown(e: MouseEvent) {
 
 watch(messages, () => updateMetrics())
 
+function getScrollKey() {
+  return `scrollPos_${props.archiveId}`
+}
+
+function saveScrollPos() {
+  if (listRef.value) {
+    sessionStorage.setItem(getScrollKey(), String(listRef.value.scrollTop))
+    console.log('[saveScrollPos] key:', getScrollKey(), 'value:', listRef.value.scrollTop)
+  }
+}
+
+function restoreScrollPos() {
+  const saved = sessionStorage.getItem(getScrollKey())
+  console.log('[restoreScrollPos] key:', getScrollKey(), 'saved:', saved, 'listRef:', !!listRef.value, 'headerHidden:', headerHidden.value, 'atBottomLocal:', atBottomLocal.value)
+  if (!saved) { console.log('[restoreScrollPos] no saved pos'); return false }
+  const pos = Number(saved)
+  if (!pos || pos <= 0) { console.log('[restoreScrollPos] invalid pos'); return false }
+  console.log('[restoreScrollPos] setting isRestoring=true')
+  isRestoring = true
+  nextTick(() => {
+    console.log('[restoreScrollPos] nextTick, listRef:', !!listRef.value, 'scrollHeight:', listRef.value?.scrollHeight, 'clientHeight:', listRef.value?.clientHeight)
+    requestAnimationFrame(() => {
+      console.log('[restoreScrollPos] rAF, listRef:', !!listRef.value, 'scrollHeight:', listRef.value?.scrollHeight, 'clientHeight:', listRef.value?.clientHeight)
+      if (listRef.value) {
+        lastScrollTop = pos
+        listRef.value.scrollTop = pos
+        console.log('[restoreScrollPos] set scrollTop=', pos, 'actual scrollTop=', listRef.value.scrollTop)
+        requestAnimationFrame(() => {
+          isRestoring = false
+          console.log('[restoreScrollPos] isRestoring=false (delayed)')
+        })
+      } else {
+        isRestoring = false
+      }
+    })
+  })
+  return true
+}
+
+onDeactivated(() => {
+  console.log('[onDeactivated] scrollTop:', listRef.value?.scrollTop)
+})
+
+onActivated(() => {
+  console.log('[onActivated]')
+  restoreScrollPos()
+})
+
 onMounted(() => {
+  console.log('[onMounted]')
   loadMessages().then(() => {
-    scrollToBottom(false)
+    const restored = restoreScrollPos()
+    console.log('[onMounted] restored:', restored)
+    if (!restored) {
+      scrollToBottom(false)
+    }
     updateMetrics()
     nextTick().then(() => {
       lastScrollTop = listRef.value?.scrollTop || 0

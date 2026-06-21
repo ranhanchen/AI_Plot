@@ -1,7 +1,7 @@
 import { db } from '@/db'
 import { useSessionStore } from '@/stores/session'
 import { useAppStore } from '@/stores/app'
-import type { Archive, Message, TokenUsage } from '@/types'
+import type { Archive, CharacterRole, Message, TokenUsage } from '@/types'
 
 async function buildSystemPrompt(archiveId: number): Promise<string> {
   const archive = await db.archives.get(archiveId)
@@ -28,6 +28,38 @@ async function buildSystemPrompt(archiveId: number): Promise<string> {
     parts.push(`【${cfg.key}】\n${cfg.value}`)
   }
 
+  const roles: CharacterRole[] = []
+
+  for (const id of archive.referencedSystemRoleIds) {
+    const role = await db.characterRoles.get(id)
+    if (role) roles.push(role)
+  }
+
+  const archiveRoles = await db.characterRoles.where({ archiveId }).sortBy('sortOrder')
+  for (const role of archiveRoles) {
+    if (!roles.some(r => r.id === role.id)) {
+      roles.push(role)
+    }
+  }
+
+  if (roles.length > 0) {
+    const roleTexts: string[] = []
+    for (const role of roles) {
+      const fields: string[] = []
+      fields.push(`【角色名称】${role.name}`)
+      if (role.age) fields.push(`年龄：${role.age}`)
+      if (role.gender) fields.push(`性别：${role.gender}`)
+      if (role.personality) fields.push(`性格：${role.personality}`)
+      if (role.specialAbilities) fields.push(`特殊能力：${role.specialAbilities}`)
+      if (role.preferences) fields.push(`喜好：${role.preferences}`)
+      if (role.intro) fields.push(`简介：${role.intro}`)
+      if (role.family) fields.push(`家庭：${role.family}`)
+      if (role.specialNotes) fields.push(`特殊备注：${role.specialNotes}`)
+      roleTexts.push(fields.join('\n'))
+    }
+    parts.push(`【角色设定】\n${roleTexts.join('\n\n')}`)
+  }
+
   const mem = archive.memory
   if (mem.currentStatus || mem.plotLine || mem.characterRelations || mem.pendingIssues || mem.keyInfo) {
     parts.push(`【当前剧情记忆】
@@ -52,7 +84,7 @@ async function buildHistory(archiveId: number) {
   }))
 }
 
-async function callLLM(
+export async function callLLM(
   archiveId: number,
   systemPrompt: string,
   history: Array<{ role: string; content: string }>,

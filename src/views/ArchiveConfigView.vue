@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, toRaw } from 'vue'
+import { ref, onMounted, onUnmounted, toRaw, computed } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { db } from '@/db'
 import { useAppStore } from '@/stores/app'
-import type { CustomConfigItem, SystemConfigItem } from '@/types'
-import { ArrowLeft, Plus, X, ChevronDown, Trash2 } from 'lucide-vue-next'
+import type { CustomConfigItem, SystemConfigItem, CharacterRole } from '@/types'
+import { ArrowLeft, Plus, X, ChevronDown, Trash2, Search } from 'lucide-vue-next'
+import RoleManager from '@/components/role/RoleManager.vue'
+import RoleCard from '@/components/role/RoleCard.vue'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
+import { preloadImages } from '@/composables/useImagePreload'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 
 const archiveId = Number(route.params.id)
-const activeTab = ref<'configs' | 'world'>('world')
+const activeTab = ref<'configs' | 'world' | 'roles'>('roles')
 
 const promptStory = ref('')
 const promptSummary = ref('')
@@ -51,14 +54,22 @@ const systemSearchResults = ref<SystemConfigItem[]>([])
 const showSystemDropdown = ref(false)
 const systemDropdownRef = ref<HTMLElement | null>(null)
 const deleteSystemId = ref<number | null>(null)
+const viewSystemConfigId = ref<number | null>(null)
+const systemConfigDragIdx = ref<number | null>(null)
+const systemConfigDragOverIdx = ref<number | null>(null)
 
-const systemConfigCache = ref<Map<number, { key: string; remark: string }>>(new Map())
+const viewSystemConfig = computed(() => {
+  if (viewSystemConfigId.value === null) return null
+  return systemConfigCache.value.get(viewSystemConfigId.value) ?? null
+})
+
+const systemConfigCache = ref<Map<number, { key: string; remark: string; value: string }>>(new Map())
 
 async function refreshSystemConfigCache() {
   const all = await db.systemConfigs.toArray()
-  const map = new Map<number, { key: string; remark: string }>()
+  const map = new Map<number, { key: string; remark: string; value: string }>()
   for (const item of all) {
-    map.set(item.id!, { key: item.key, remark: item.remark || item.key })
+    map.set(item.id!, { key: item.key, remark: item.remark || item.key, value: item.value })
   }
   systemConfigCache.value = map
 }
@@ -71,7 +82,152 @@ function getSystemConfigDisplay(id: number): string {
 const dirtyPrivateIdx = ref(new Set<number>())
 const dirtyWorldIdx = ref(new Set<number>())
 const dirtyWorldSetting = ref(false)
-const dirtyRefConfigs = ref(false)
+
+// ---- 角色管理 ----
+const archiveRoles = ref<CharacterRole[]>([])
+const referencedSystemRoleIds = ref<number[]>([])
+const referencedRolesCache = ref<Map<number, CharacterRole>>(new Map())
+
+const systemRoleSearchInput = ref('')
+const systemRoleSearchResults = ref<CharacterRole[]>([])
+const showSystemRoleDropdown = ref(false)
+const systemRoleDropdownRef = ref<HTMLElement | null>(null)
+const removeSystemRoleId = ref<number | null>(null)
+
+const systemRoleDragIdx = ref<number | null>(null)
+const systemRoleDragOverIdx = ref<number | null>(null)
+
+async function loadArchiveRoles() {
+  const all = await db.characterRoles.toArray()
+  const roles = all.filter(r => r.archiveId === archiveId).sort((a, b) => a.sortOrder - b.sortOrder)
+  archiveRoles.value = roles
+  preloadImages(roles.flatMap(r => r.images || []))
+}
+
+async function loadReferencedSystemRoles() {
+  const all = await db.characterRoles.toArray()
+  const systemRoles = all.filter(r => !r.archiveId)
+  const map = new Map<number, CharacterRole>()
+  for (const id of referencedSystemRoleIds.value) {
+    const role = systemRoles.find(r => r.id === id)
+    if (role) map.set(id, role)
+  }
+  referencedRolesCache.value = map
+  preloadImages([...map.values()].flatMap(r => r.images || []))
+}
+
+function handleArchiveRoleClick(role: CharacterRole) {
+  router.push(`/character/${role.id}`)
+}
+
+function handleArchiveRoleAdd() {
+  router.push(`/character/new?archiveId=${archiveId}`)
+}
+
+async function handleArchiveRoleDelete(role: CharacterRole) {
+  await db.characterRoles.delete(role.id!)
+  await loadArchiveRoles()
+  appStore.showToast('角色已删除', 'success')
+}
+
+async function onArchiveRolesReorder(payload: { fromIndex: number; toIndex: number }) {
+  const { fromIndex, toIndex } = payload
+  const moved = archiveRoles.value.splice(fromIndex, 1)[0]
+  archiveRoles.value.splice(toIndex, 0, moved)
+  for (let i = 0; i < archiveRoles.value.length; i++) {
+    const role = archiveRoles.value[i]
+    role.sortOrder = i
+    if (role.id != null) {
+      await db.characterRoles.update(role.id, { sortOrder: i })
+    }
+  }
+}
+
+async function searchSystemRoles() {
+  const all = await db.characterRoles.toArray()
+  const systemRoles = all.filter(r => !r.archiveId)
+  const q = systemRoleSearchInput.value.trim().toLowerCase()
+  if (!q) {
+    systemRoleSearchResults.value = systemRoles.filter(r => !referencedSystemRoleIds.value.includes(r.id!))
+  } else {
+    systemRoleSearchResults.value = systemRoles.filter(r =>
+      !referencedSystemRoleIds.value.includes(r.id!) &&
+      (r.name.toLowerCase().includes(q))
+    )
+  }
+  showSystemRoleDropdown.value = true
+}
+
+function selectSystemRoleResult(role: CharacterRole) {
+  systemRoleSearchInput.value = role.name
+  showSystemRoleDropdown.value = false
+}
+
+async function addSystemRoleReference() {
+  const q = systemRoleSearchInput.value.trim()
+  if (!q) { appStore.showToast('请输入或搜索角色名称', 'error'); return }
+  const all = await db.characterRoles.toArray()
+  const systemRoles = all.filter(r => !r.archiveId)
+  const role = systemRoles.find(r => r.name === q && !referencedSystemRoleIds.value.includes(r.id!))
+  if (!role) { appStore.showToast('未找到该系统角色', 'error'); return }
+  referencedSystemRoleIds.value = [...referencedSystemRoleIds.value, role.id!]
+  await db.archives.update(archiveId, {
+    referencedSystemRoleIds: toRaw(referencedSystemRoleIds.value),
+  })
+  await loadReferencedSystemRoles()
+  systemRoleSearchInput.value = ''
+  showSystemRoleDropdown.value = false
+  appStore.showToast('已引用系统角色', 'success')
+}
+
+async function removeSystemRoleReference(id: number) {
+  referencedSystemRoleIds.value = referencedSystemRoleIds.value.filter(x => x !== id)
+  removeSystemRoleId.value = null
+  await db.archives.update(archiveId, {
+    referencedSystemRoleIds: toRaw(referencedSystemRoleIds.value),
+  })
+  await loadReferencedSystemRoles()
+  appStore.showToast('已解除引用', 'success')
+}
+
+function handleSystemRoleClickOutside(e: MouseEvent) {
+  if (systemRoleDropdownRef.value && !systemRoleDropdownRef.value.contains(e.target as Node)) {
+    showSystemRoleDropdown.value = false
+  }
+}
+
+function onSystemRoleDragStart(e: DragEvent, idx: number) {
+  systemRoleDragIdx.value = idx
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', 'sysrole-' + idx)
+  }
+}
+function onSystemRoleDragOver(e: DragEvent, idx: number) {
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  systemRoleDragOverIdx.value = idx
+}
+async function onSystemRoleDrop(e: DragEvent, targetIdx: number) {
+  e.preventDefault()
+  if (systemRoleDragIdx.value === null || systemRoleDragIdx.value === targetIdx) {
+    systemRoleDragIdx.value = null
+    systemRoleDragOverIdx.value = null
+    return
+  }
+  const oldIdx = systemRoleDragIdx.value
+  const moved = referencedSystemRoleIds.value.splice(oldIdx, 1)[0]
+  referencedSystemRoleIds.value.splice(targetIdx, 0, moved)
+  systemRoleDragIdx.value = null
+  systemRoleDragOverIdx.value = null
+  await db.archives.update(archiveId, {
+    referencedSystemRoleIds: toRaw(referencedSystemRoleIds.value),
+  })
+}
+function onSystemRoleDragEnd() {
+  systemRoleDragIdx.value = null
+  systemRoleDragOverIdx.value = null
+}
 
 const showLeaveConfirm = ref(false)
 const leaving = ref(false)
@@ -81,7 +237,7 @@ onBeforeRouteLeave((to, from, next) => {
     next()
     return
   }
-  if (dirtyPrivateIdx.value.size > 0 || dirtyWorldIdx.value.size > 0 || dirtyWorldSetting.value || dirtyRefConfigs.value) {
+  if (dirtyPrivateIdx.value.size > 0 || dirtyWorldIdx.value.size > 0 || dirtyWorldSetting.value) {
     showLeaveConfirm.value = true
     next(false)
   } else {
@@ -121,11 +277,17 @@ async function loadData() {
   } else {
     referencedSystemConfigIds.value = []
   }
+  if (a.referencedSystemRoleIds && a.referencedSystemRoleIds.length > 0) {
+    referencedSystemRoleIds.value = [...a.referencedSystemRoleIds]
+  } else {
+    referencedSystemRoleIds.value = []
+  }
   await refreshSystemConfigCache()
+  await loadArchiveRoles()
+  await loadReferencedSystemRoles()
   dirtyPrivateIdx.value.clear()
   dirtyWorldIdx.value.clear()
   dirtyWorldSetting.value = false
-  dirtyRefConfigs.value = false
 }
 
 async function savePrivateConfigs(idx: number) {
@@ -150,14 +312,6 @@ async function saveWorldSetting() {
   })
   dirtyWorldSetting.value = false
   appStore.showToast('初始世界观已保存', 'success')
-}
-
-async function saveReferencedConfigs() {
-  await db.archives.update(archiveId, {
-    referencedSystemConfigKeys: toRaw(referencedSystemConfigIds.value),
-  })
-  dirtyRefConfigs.value = false
-  appStore.showToast('引用配置已保存', 'success')
 }
 
 function checkPrivateRemarkConflict(remark: string, excludeIdx?: number): boolean {
@@ -238,7 +392,7 @@ async function searchSystemConfigs() {
   } else {
     results = await db.systemConfigs.filter(c => c.key.includes(q) || (c.remark ? c.remark.includes(q) : false)).toArray()
   }
-  results = results.filter(c => !referencedSystemConfigIds.value.includes(c.id!) && c.key !== 'AI 剧情推动提示词' && c.key !== 'AI 总结提示词')
+  results = results.filter(c => !referencedSystemConfigIds.value.includes(c.id!) && c.key !== 'AI 剧情推动提示词' && c.key !== 'AI 总结提示词' && c.key !== 'AI 角色生成提示词')
   systemSearchResults.value = results
   showSystemDropdown.value = true
 }
@@ -258,10 +412,13 @@ async function addSystemConfig() {
     return
   }
   referencedSystemConfigIds.value = [...referencedSystemConfigIds.value, sysCfg.id!]
+  await db.archives.update(archiveId, {
+    referencedSystemConfigKeys: toRaw(referencedSystemConfigIds.value),
+  })
   await refreshSystemConfigCache()
   systemSearchInput.value = ''
   showSystemDropdown.value = false
-  dirtyRefConfigs.value = true
+  appStore.showToast('已引用系统配置项', 'success')
 }
 
 function handleClickOutside(e: MouseEvent) {
@@ -270,10 +427,47 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-function removeSystemConfig(id: number) {
+async function removeSystemConfig(id: number) {
   referencedSystemConfigIds.value = referencedSystemConfigIds.value.filter(x => x !== id)
   deleteSystemId.value = null
-  dirtyRefConfigs.value = true
+  await db.archives.update(archiveId, {
+    referencedSystemConfigKeys: toRaw(referencedSystemConfigIds.value),
+  })
+  await refreshSystemConfigCache()
+  appStore.showToast('已解除引用', 'success')
+}
+
+function onSystemConfigDragStart(e: DragEvent, idx: number) {
+  systemConfigDragIdx.value = idx
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', 'syscfg-' + idx)
+  }
+}
+function onSystemConfigDragOver(e: DragEvent, idx: number) {
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
+  systemConfigDragOverIdx.value = idx
+}
+async function onSystemConfigDrop(e: DragEvent, targetIdx: number) {
+  e.preventDefault()
+  if (systemConfigDragIdx.value === null || systemConfigDragIdx.value === targetIdx) {
+    systemConfigDragIdx.value = null
+    systemConfigDragOverIdx.value = null
+    return
+  }
+  const oldIdx = systemConfigDragIdx.value
+  const moved = referencedSystemConfigIds.value.splice(oldIdx, 1)[0]
+  referencedSystemConfigIds.value.splice(targetIdx, 0, moved)
+  systemConfigDragIdx.value = null
+  systemConfigDragOverIdx.value = null
+  await db.archives.update(archiveId, {
+    referencedSystemConfigKeys: toRaw(referencedSystemConfigIds.value),
+  })
+}
+function onSystemConfigDragEnd() {
+  systemConfigDragIdx.value = null
+  systemConfigDragOverIdx.value = null
 }
 
 function confirmDeletePrivate() {
@@ -393,10 +587,12 @@ function onWorldDragEnd() {
 onMounted(() => {
   loadData()
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('click', handleSystemRoleClickOutside)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', handleSystemRoleClickOutside)
 })
 </script>
 
@@ -406,16 +602,83 @@ onUnmounted(() => {
       <button class="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors" @click="router.back()">
         <ArrowLeft :size="20" />
       </button>
-      <h1 class="text-lg font-semibold flex-1">存档配置</h1>
+      <h1 class="text-base font-semibold flex-1">存档配置</h1>
     </header>
 
     <div class="flex border-b border-[var(--color-border)] shrink-0">
-      <button v-for="tab in [{k:'world',l:'世界观'},{k:'configs',l:'存档配置项'}]" :key="tab.k"
+      <button v-for="tab in [{k:'world',l:'世界观'},{k:'roles',l:'角色管理'},{k:'configs',l:'存档配置项'}]" :key="tab.k"
         :class="['flex-1 py-2.5 font-medium transition-colors text-sm sm:text-base', activeTab === tab.k ? 'text-[var(--color-accent)] border-b-2 border-[var(--color-accent)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]']"
         @click="activeTab = tab.k as any">{{ tab.l }}</button>
     </div>
 
     <div class="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+
+      <!-- 角色管理 -->
+      <template v-if="activeTab === 'roles'">
+        <div class="pt-4">
+          <RoleManager
+            :roles="archiveRoles"
+            variant="archive"
+            empty-text="暂无存档角色"
+            :draggable="true"
+            @add="handleArchiveRoleAdd"
+            @click="handleArchiveRoleClick"
+            @delete="handleArchiveRoleDelete"
+            @reorder="onArchiveRolesReorder"
+          />
+        </div>
+
+        <!-- 引用系统角色 -->
+        <div ref="systemRoleDropdownRef">
+          <div class="flex items-center justify-between mb-2 sticky top-0 z-10 bg-[var(--color-bg)] pt-4 pb-2">
+            <div class="flex items-center gap-2">
+              <label class="font-medium shrink-0 text-sm sm:text-base">引用系统角色</label>
+              <div class="flex items-center gap-1">
+                <div class="relative">
+                  <input
+                    v-model="systemRoleSearchInput"
+                    type="text"
+                    class="w-32 px-2 py-1.5 rounded border border-[var(--color-border)] bg-[var(--color-bg)] text-sm focus:border-[var(--color-accent)] focus:outline-none"
+                    placeholder="搜索系统角色"
+                    @keyup.enter="searchSystemRoles()"
+                  />
+                  <div v-if="showSystemRoleDropdown" class="absolute top-full left-0 right-0 mt-1 bg-[var(--color-bg)] border border-[var(--color-border)] rounded-md shadow-lg z-20 max-h-40 overflow-y-auto">
+                    <div v-for="role in systemRoleSearchResults" :key="role.id" class="px-3 py-1.5 text-sm cursor-pointer hover:bg-[var(--color-surface-hover)] transition-colors" @click="selectSystemRoleResult(role)">{{ role.name }}</div>
+                  </div>
+                </div>
+                <button class="flex items-center justify-center px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-sm sm:text-base" @click="searchSystemRoles()"><Search :size="14" /></button>
+                <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-sm sm:text-base" @click="addSystemRoleReference()"><Plus :size="14" />引用</button>
+              </div>
+            </div>
+          </div>
+          <div v-if="referencedSystemRoleIds.length === 0" class="text-center py-8 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
+            暂无引用系统角色
+          </div>
+          <div v-else class="grid gap-3 sm:gap-4" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
+            <template v-for="(id, idx) in referencedSystemRoleIds" :key="id">
+              <div
+                v-if="referencedRolesCache.has(id)"
+                draggable="true"
+                :class="[
+                  systemRoleDragIdx === idx ? 'opacity-40' : '',
+                  systemRoleDragOverIdx === idx && systemRoleDragIdx !== idx ? 'ring-2 ring-[var(--color-accent)] rounded-xl' : ''
+                ]"
+                @dragstart="onSystemRoleDragStart($event, idx)"
+                @dragover="onSystemRoleDragOver($event, idx)"
+                @drop="onSystemRoleDrop($event, idx)"
+                @dragend="onSystemRoleDragEnd"
+              >
+                <RoleCard
+                  :role="referencedRolesCache.get(id)!"
+                  variant="system"
+                  @click="router.push(`/character/${id}`)"
+                  @contextmenu.prevent="removeSystemRoleId = id"
+                />
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
 
       <!-- 存档配置项 -->
       <template v-if="activeTab === 'configs'">
@@ -509,21 +772,28 @@ onUnmounted(() => {
                 <button class="flex items-center gap-1 px-2 py-1 rounded border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors text-sm sm:text-base" @click="addSystemConfig()"><Plus :size="14" />引用</button>
               </div>
             </div>
-            <button
-              class="px-3 py-1.5 rounded-md bg-[var(--color-accent)] text-white hover:opacity-90 transition-colors disabled:opacity-50 text-sm"
-              :disabled="!dirtyRefConfigs"
-              @click="saveReferencedConfigs()"
-            >
-              保存
-            </button>
           </div>
-<div v-if="referencedSystemConfigIds.length === 0" class="text-center py-12 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
+          <div v-if="referencedSystemConfigIds.length === 0" class="text-center py-12 text-sm text-[var(--color-text-muted)] empty-state rounded-lg">
             暂无引用系统配置项
           </div>
           <div v-else class="flex flex-wrap gap-2">
-            <span v-for="id in referencedSystemConfigIds" :key="id" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20">
+            <span
+              v-for="(id, idx) in referencedSystemConfigIds"
+              :key="id"
+              draggable="true"
+              :class="[
+                'inline-flex items-center gap-3 pl-4 pr-2 py-1 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20 cursor-pointer hover:bg-[var(--color-accent)]/20 transition-colors select-none',
+                systemConfigDragIdx === idx ? 'opacity-40' : '',
+                systemConfigDragOverIdx === idx && systemConfigDragIdx !== idx ? 'ring-2 ring-[var(--color-accent)]' : ''
+              ]"
+              @click="viewSystemConfigId = id"
+              @dragstart="onSystemConfigDragStart($event, idx)"
+              @dragover="onSystemConfigDragOver($event, idx)"
+              @drop="onSystemConfigDrop($event, idx)"
+              @dragend="onSystemConfigDragEnd"
+            >
               {{ getSystemConfigDisplay(id) }}
-              <button class="hover:text-red-500 transition-colors" @click="deleteSystemId = id"><X :size="10" /></button>
+              <button class="hover:text-red-500 transition-colors" @click.stop="deleteSystemId = id"><X :size="10" /></button>
             </span>
           </div>
         </div>
@@ -629,6 +899,9 @@ onUnmounted(() => {
     <ConfirmModal :visible="deleteSystemId !== null" title="解除引用" :message="`确认解除对系统配置项「${deleteSystemId !== null ? getSystemConfigDisplay(deleteSystemId) : ''}」的引用？`" confirm-text="解除"
       @confirm="deleteSystemId !== null && removeSystemConfig(deleteSystemId)" @cancel="deleteSystemId = null" />
 
+    <ConfirmModal :visible="removeSystemRoleId !== null" title="解除引用" :message="`确认解除对系统角色「${removeSystemRoleId !== null ? referencedRolesCache.get(removeSystemRoleId)?.name || '' : ''}」的引用？`" confirm-text="解除"
+      @confirm="removeSystemRoleId !== null && removeSystemRoleReference(removeSystemRoleId)" @cancel="removeSystemRoleId = null" />
+
     <ConfirmModal
       :visible="showLeaveConfirm"
       title="未保存的更改"
@@ -638,5 +911,42 @@ onUnmounted(() => {
       @confirm="confirmLeave()"
       @cancel="showLeaveConfirm = false"
     />
+
+    <!-- 查看系统配置项详情弹窗 -->
+    <Teleport to="body">
+      <div
+        v-if="viewSystemConfigId !== null"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        @click.self="viewSystemConfigId = null"
+      >
+        <div class="bg-[var(--color-bg)] border border-[var(--color-border)] rounded-xl shadow-2xl w-[90vw] max-w-lg h-[80vh] flex flex-col mx-4 pb-3">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)] shrink-0">
+            <span class="font-semibold text-base">系统配置项详情</span>
+            <button class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors" @click="viewSystemConfigId = null">
+              <X :size="18" />
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+            <div v-if="viewSystemConfig">
+              <div>
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">备注</label>
+                <div class="text-sm text-[var(--color-text-primary)] px-3 py-1.5 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)]">{{ viewSystemConfig.remark }}</div>
+              </div>
+              <div class="mt-3">
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置名称</label>
+                <div class="text-sm text-[var(--color-text-primary)] px-3 py-1.5 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)]">{{ viewSystemConfig.key }}</div>
+              </div>
+              <div class="mt-3">
+                <label class="block text-xs text-[var(--color-text-secondary)] mb-1">配置内容</label>
+                <div class="text-sm text-[var(--color-text-primary)] px-3 py-2 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] whitespace-pre-wrap max-h-60 overflow-y-auto">{{ viewSystemConfig.value }}</div>
+              </div>
+            </div>
+            <div v-else class="text-center py-8 text-sm text-[var(--color-text-muted)]">
+              该配置项已被删除
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

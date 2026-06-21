@@ -6,7 +6,7 @@ import { storeToRefs } from 'pinia'
 import type { SystemConfigItem } from '@/types'
 import { Send, Play } from 'lucide-vue-next'
 
-const DEFAULT_SYSTEM_KEYS = ['AI 剧情推动提示词', 'AI 总结提示词']
+const DEFAULT_SYSTEM_KEYS = ['AI 剧情推动提示词', 'AI 总结提示词', 'AI 角色生成提示词']
 
 const props = defineProps<{
   excludedSystemConfigIds: number[]

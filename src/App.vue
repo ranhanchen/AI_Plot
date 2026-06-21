@@ -4,7 +4,11 @@ import Toast from '@/components/common/Toast.vue'
 
 <template>
   <div class="h-full w-full flex flex-col">
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <keep-alive :include="['StoryView']">
+        <component :is="Component" />
+      </keep-alive>
+    </router-view>
     <Toast />
   </div>
 </template>

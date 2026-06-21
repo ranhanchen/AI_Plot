@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { db } from '@/db'
 import { useAppStore } from '@/stores/app'
 import { useArchiveIO } from '@/composables/useArchiveIO'
+import { preloadImages } from '@/composables/useImagePreload'
 import type { Archive } from '@/types'
 import { Settings, Plus } from 'lucide-vue-next'
 import BookShelf from '@/components/home/BookShelf.vue'
@@ -37,6 +38,12 @@ async function loadArchives() {
   archives.value = enriched
 }
 
+async function preloadSystemRoleImages() {
+  const all = await db.characterRoles.toArray()
+  const systemRoles = all.filter(r => !r.archiveId)
+  preloadImages(systemRoles.flatMap(r => r.images || []))
+}
+
 async function createArchive(title: string) {
   const allArchives = await db.archives.orderBy('createdAt').reverse().toArray()
   const latest = allArchives[0]
@@ -53,6 +60,7 @@ async function createArchive(title: string) {
     privateConfigs: latest?.privateConfigs ? [...latest.privateConfigs] : [],
     worldConfigs: latest?.worldConfigs ? [...latest.worldConfigs] : [],
     referencedSystemConfigKeys: latest?.referencedSystemConfigKeys ? [...latest.referencedSystemConfigKeys] : [],
+    referencedSystemRoleIds: latest?.referencedSystemRoleIds ? [...latest.referencedSystemRoleIds] : [],
     memory: {
       currentStatus: '',
       plotLine: '',
@@ -116,6 +124,7 @@ const exportArchiveTitle = ref('')
 
 onMounted(() => {
   loadArchives()
+  preloadSystemRoleImages()
 })
 </script>
 
@@ -123,7 +132,7 @@ onMounted(() => {
   <div class="h-full flex flex-col">
     <!-- 顶部操作栏 -->
     <header class="flex items-center justify-between px-3 sm:px-6 py-4 page-header shrink-0">
-      <h1 class="text-xl font-bold text-[var(--color-accent)]">NarrativeForge</h1>
+      <h1 class="text-lg font-bold text-[var(--color-accent)]">NarrativeForge</h1>
       <div class="flex items-center gap-3">
         <button
           class="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-md bg-[var(--color-accent)] text-white text-sm hover:opacity-90 transition-colors"

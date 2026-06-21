@@ -13,6 +13,7 @@ export interface Archive {
   privateConfigs: CustomConfigItem[]
   worldConfigs: CustomConfigItem[]
   referencedSystemConfigKeys: number[]
+  referencedSystemRoleIds: number[]
   memory: MemoryData
   tokenStats: TokenStats
 }
@@ -85,4 +86,23 @@ export interface TokenUsage {
   promptTokens: number
   cachedTokens: number
   completionTokens: number
+}
+
+// ============ 角色表 ============
+export interface CharacterRole {
+  id?: number
+  name: string
+  age: string
+  gender: string
+  personality: string
+  specialAbilities: string
+  preferences: string
+  intro: string
+  family: string
+  specialNotes: string
+  images: string[]
+  createdAt: number
+  updatedAt: number
+  sortOrder: number
+  archiveId?: number
 }
