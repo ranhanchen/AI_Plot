@@ -50,47 +50,58 @@ const dirtyIds = ref(new Set<number>())
 async function loadItems() {
   let fromDb = await db.systemConfigs.toArray()
 
+  // 批量清理旧版本遗留的 key
   const oldKeys = ['大模型剧情推动提示词', '大模型总结提示词', 'AI 剧情推动提示词', 'AI 总结提示词', 'AI 角色生成提示词']
-  for (const old of fromDb) {
-    if (oldKeys.includes(old.key) && old.id) {
-      await db.systemConfigs.delete(old.id)
-    }
+  const toDeleteIds = fromDb.filter(i => oldKeys.includes(i.key) && i.id != null).map(i => i.id!)
+  if (toDeleteIds.length > 0) {
+    await db.systemConfigs.bulkDelete(toDeleteIds)
+    fromDb = fromDb.filter(i => !oldKeys.includes(i.key))
   }
-  fromDb = fromDb.filter(i => !oldKeys.includes(i.key))
 
+  // 补充缺失的默认配置项（批量插入替代串行 add）
   const existingDefaults = fromDb
     .filter(i => i.key === '底层设定与核心身份')
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-  for (let idx = existingDefaults.length; idx < DEFAULT_ITEMS.length; idx++) {
-    const d = DEFAULT_ITEMS[idx]
+  if (existingDefaults.length < DEFAULT_ITEMS.length) {
     const ts = Date.now()
-    const id = await db.systemConfigs.add({
+    const toAdd = DEFAULT_ITEMS.slice(existingDefaults.length).map((d, i) => ({
       key: d.key,
       value: d.value,
       remark: d.remark,
-      sortOrder: ts,
-      createdAt: ts,
-    } as SystemConfigItem)
-    fromDb.push({ id, key: d.key, value: d.value, remark: d.remark, sortOrder: ts, createdAt: ts } as SystemConfigItem)
+      sortOrder: ts + i,
+      createdAt: ts + i,
+    }))
+    const ids = await db.systemConfigs.bulkAdd<true>(toAdd as SystemConfigItem[], { allKeys: true })
+    for (let i = 0; i < toAdd.length; i++) {
+      fromDb.push({ ...toAdd[i], id: ids[i] ?? -(Date.now() + i) } as SystemConfigItem)
+    }
   }
 
+  // 补全缺失字段
   for (const item of fromDb) {
     if (!item.remark) item.remark = item.key
     if (item.sortOrder === undefined || item.sortOrder === null) item.sortOrder = item.createdAt
   }
 
-  await loadDefaultIds()
-
+  // 尽快显示数据，不等待 loadDefaultIds
   fromDb.sort((a, b) => {
-    const aDef = isDefaultItem(a.id) ? 1 : 0
-    const bDef = isDefaultItem(b.id) ? 1 : 0
-    if (aDef !== bDef) return bDef - aDef
     if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder
     return b.createdAt - a.createdAt
   })
-
   items.value = fromDb
   dirtyIds.value.clear()
+
+  // 异步加载默认 ID，完成后重新排序使默认项置顶
+  await loadDefaultIds()
+  if (items.value.some(i => isDefaultItem(i.id))) {
+    items.value = [...items.value].sort((a, b) => {
+      const aDef = isDefaultItem(a.id) ? 1 : 0
+      const bDef = isDefaultItem(b.id) ? 1 : 0
+      if (aDef !== bDef) return bDef - aDef
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder
+      return b.createdAt - a.createdAt
+    })
+  }
 }
 
 async function addItem() {
