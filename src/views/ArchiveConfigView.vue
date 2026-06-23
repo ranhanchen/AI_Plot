@@ -104,10 +104,15 @@ async function loadArchiveRoles() {
 }
 
 async function loadReferencedSystemRoles() {
+  const ids = referencedSystemRoleIds.value
+  if (ids.length === 0) {
+    referencedRolesCache.value = new Map()
+    return
+  }
+  const roles = await db.characterRoles.bulkGet(ids)
   const map = new Map<number, CharacterRole>()
-  for (const id of referencedSystemRoleIds.value) {
-    const role = await db.characterRoles.get(id)
-    if (role) map.set(id, role)
+  for (let i = 0; i < ids.length; i++) {
+    if (roles[i]) map.set(ids[i], roles[i]!)
   }
   referencedRolesCache.value = map
   preloadImages([...map.values()].flatMap(r => r.images || []))
@@ -281,12 +286,32 @@ async function loadData() {
   outputLimit.value = a.outputLimit
   privateConfigs.value = a.privateConfigs ? a.privateConfigs.map(c => ({ ...c, remark: c.remark || c.key })) : []
   worldConfigs.value = a.worldConfigs ? a.worldConfigs.map(c => ({ ...c, remark: c.remark || c.key })) : []
+
+  const [allSystemConfigs, archiveRolesResult, referencedRolesResult] = await Promise.all([
+    db.systemConfigs.toArray(),
+    db.characterRoles.where('archiveId').equals(archiveId).sortBy('sortOrder'),
+    Promise.resolve().then(async () => {
+      const ids = a.referencedSystemRoleIds?.length ? a.referencedSystemRoleIds : []
+      if (ids.length === 0) return new Map<number, CharacterRole>()
+      const roles = await db.characterRoles.bulkGet(ids)
+      const map = new Map<number, CharacterRole>()
+      for (let i = 0; i < ids.length; i++) {
+        if (roles[i]) map.set(ids[i], roles[i]!)
+      }
+      return map
+    }),
+  ])
+
+  systemConfigCache.value = new Map(
+    allSystemConfigs.map(item => [item.id!, { key: item.key, remark: item.remark || item.key, value: item.value }])
+  )
+
   if (a.referencedSystemConfigKeys && a.referencedSystemConfigKeys.length > 0) {
     const raw = a.referencedSystemConfigKeys
     if (typeof raw[0] === 'string') {
       const ids: number[] = []
       for (const key of raw as unknown as string[]) {
-        const sysCfg = await db.systemConfigs.where('key').equals(key).first()
+        const sysCfg = allSystemConfigs.find(c => c.key === key)
         if (sysCfg) ids.push(sysCfg.id!)
       }
       referencedSystemConfigIds.value = ids
@@ -296,15 +321,21 @@ async function loadData() {
   } else {
     referencedSystemConfigIds.value = []
   }
-  if (a.referencedSystemRoleIds && a.referencedSystemRoleIds.length > 0) {
+
+  if (a.referencedSystemRoleIds?.length) {
     referencedSystemRoleIds.value = [...a.referencedSystemRoleIds]
   } else {
     referencedSystemRoleIds.value = []
   }
-  await refreshSystemConfigCache()
+
+  archiveRoles.value = archiveRolesResult
+  referencedRolesCache.value = referencedRolesResult
+  preloadImages([
+    ...archiveRolesResult.flatMap(r => r.images || []),
+    ...[...referencedRolesResult.values()].flatMap(r => r.images || []),
+  ])
+
   await loadDefaultIds()
-  await loadArchiveRoles()
-  await loadReferencedSystemRoles()
   dirtyPrivateIdx.value.clear()
   dirtyWorldIdx.value.clear()
   dirtyWorldSetting.value = false
