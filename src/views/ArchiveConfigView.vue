@@ -98,7 +98,8 @@ const systemRoleDragIdx = ref<number | null>(null)
 const systemRoleDragOverIdx = ref<number | null>(null)
 
 async function loadArchiveRoles() {
-  const roles = await db.characterRoles.where('archiveId').equals(archiveId).sortBy('sortOrder')
+  const roles = await db.characterRoles.where('archiveId').equals(archiveId).toArray()
+  roles.sort((a, b) => b.sortOrder - a.sortOrder)
   archiveRoles.value = roles
   preloadImages(roles.flatMap(r => r.images || []))
 }
@@ -137,7 +138,7 @@ async function onArchiveRolesReorder(payload: { fromIndex: number; toIndex: numb
   const moved = archiveRoles.value.splice(fromIndex, 1)[0]
   archiveRoles.value.splice(toIndex, 0, moved)
   for (let i = 0; i < archiveRoles.value.length; i++) {
-    archiveRoles.value[i].sortOrder = i
+    archiveRoles.value[i].sortOrder = archiveRoles.value.length - 1 - i
   }
   await db.characterRoles.bulkPut(archiveRoles.value.filter(r => r.id != null))
 }
@@ -286,7 +287,7 @@ async function loadData() {
 
   const [allSystemConfigs, archiveRolesResult, referencedRolesResult] = await Promise.all([
     db.systemConfigs.toArray(),
-    db.characterRoles.where('archiveId').equals(archiveId).sortBy('sortOrder'),
+    db.characterRoles.where('archiveId').equals(archiveId).toArray().then(roles => roles.sort((a, b) => b.sortOrder - a.sortOrder)),
     Promise.resolve().then(async () => {
       const ids = a.referencedSystemRoleIds?.length ? a.referencedSystemRoleIds : []
       if (ids.length === 0) return new Map<number, CharacterRole>()

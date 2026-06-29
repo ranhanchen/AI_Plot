@@ -29,7 +29,7 @@ const systemRoles = ref<CharacterRole[]>([])
 
 async function loadSystemRoles() {
   const all = await db.characterRoles.toArray()
-  const roles = all.filter(r => !r.archiveId).sort((a, b) => a.sortOrder - b.sortOrder)
+  const roles = all.filter(r => !r.archiveId).sort((a, b) => b.sortOrder - a.sortOrder)
   systemRoles.value = roles
   preloadImages(roles.flatMap(r => r.images || []))
 }
@@ -58,9 +58,9 @@ async function handleRoleReorder(payload: { fromIndex: number; toIndex: number }
   systemRoles.value.splice(toIndex, 0, moved)
   for (let i = 0; i < systemRoles.value.length; i++) {
     const role = systemRoles.value[i]
-    role.sortOrder = i
+    role.sortOrder = systemRoles.value.length - 1 - i
     if (role.id != null) {
-      await db.characterRoles.update(role.id, { sortOrder: i })
+      await db.characterRoles.update(role.id, { sortOrder: role.sortOrder })
     }
   }
 }

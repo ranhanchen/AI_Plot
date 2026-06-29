@@ -35,7 +35,8 @@ async function buildSystemPrompt(archiveId: number): Promise<string> {
     if (role) roles.push(role)
   }
 
-  const archiveRoles = await db.characterRoles.where({ archiveId }).sortBy('sortOrder')
+  const archiveRoles = await db.characterRoles.where({ archiveId }).toArray()
+  archiveRoles.sort((a, b) => b.sortOrder - a.sortOrder)
   for (const role of archiveRoles) {
     if (!roles.some(r => r.id === role.id)) {
       roles.push(role)

@@ -501,6 +501,16 @@ async function save() {
     }
 
     if (isNew.value) {
+      let maxOrder = 0
+      if (archiveId.value) {
+        const roles = await db.characterRoles.where('archiveId').equals(archiveId.value).toArray()
+        maxOrder = roles.reduce((max, r) => Math.max(max, r.sortOrder || 0), 0)
+      } else {
+        const all = await db.characterRoles.toArray()
+        const sysRoles = all.filter(r => !r.archiveId)
+        maxOrder = sysRoles.reduce((max, r) => Math.max(max, r.sortOrder || 0), 0)
+      }
+      data.sortOrder = maxOrder + 1
       await db.characterRoles.add({ ...data })
       appStore.showToast('角色已创建', 'success')
     } else {
